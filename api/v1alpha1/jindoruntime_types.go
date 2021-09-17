@@ -53,6 +53,11 @@ type JindoCompTemplateSpec struct {
 	// If specified, the pod's tolerations.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// Labels will be added on all the JindoFS Master or Worker pods.
+	// Any label already existed will be overriden
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // JindoFuseSpec is a description of the Jindo Fuse
@@ -98,6 +103,11 @@ type JindoFuseSpec struct {
 	// If specified, the pod's tolerations.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// Labels will be added on all the JindoFS Fuse pods.
+	// Any label already existed will be overriden
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // JindoRuntimeSpec defines the desired state of JindoRuntime
@@ -105,13 +115,13 @@ type JindoRuntimeSpec struct {
 	// The version information that instructs fluid to orchestrate a particular version of Jindo.
 	JindoVersion VersionSpec `json:"jindoVersion,omitempty"`
 
-	// Desired state for Jindo master
+	// The component spec of Jindo master
 	Master JindoCompTemplateSpec `json:"master,omitempty"`
 
-	// Desired state for Jindo worker
+	// The component spec of Jindo worker
 	Worker JindoCompTemplateSpec `json:"worker,omitempty"`
 
-	// Desired state for Jindo Fuse
+	// The component spec of Jindo Fuse
 	Fuse JindoFuseSpec `json:"fuse,omitempty"`
 
 	// Configurable properties for Jindo system. <br>
@@ -136,6 +146,10 @@ type JindoRuntimeSpec struct {
 	HadoopConfig string `json:"hadoopConfig,omitempty"`
 
 	Secret string `json:"secret,omitempty"`
+
+	// Labels will be added on all the JindoFS pods.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // +kubebuilder:object:root=true
