@@ -97,7 +97,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio master</p>
+<p>The component spec of Alluxio master</p>
 </td>
 </tr>
 <tr>
@@ -110,7 +110,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio job master</p>
+<p>The component spec ofAlluxio job master</p>
 </td>
 </tr>
 <tr>
@@ -123,7 +123,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio worker</p>
+<p>The component spec of Alluxio worker</p>
 </td>
 </tr>
 <tr>
@@ -136,7 +136,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio job Worker</p>
+<p>The component spec of Alluxio job Worker</p>
 </td>
 </tr>
 <tr>
@@ -149,7 +149,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio API Gateway</p>
+<p>The component spec of Alluxio API Gateway</p>
 </td>
 </tr>
 <tr>
@@ -175,7 +175,7 @@ AlluxioFuseSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio Fuse</p>
+<p>The component spec of Alluxio Fuse</p>
 </td>
 </tr>
 <tr>
@@ -1063,7 +1063,7 @@ JindoCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Jindo master</p>
+<p>The component spec of Jindo master</p>
 </td>
 </tr>
 <tr>
@@ -1076,7 +1076,7 @@ JindoCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Jindo worker</p>
+<p>The component spec of Jindo worker</p>
 </td>
 </tr>
 <tr>
@@ -1089,7 +1089,7 @@ JindoFuseSpec
 </em>
 </td>
 <td>
-<p>Desired state for Jindo Fuse</p>
+<p>The component spec of Jindo Fuse</p>
 </td>
 </tr>
 <tr>
@@ -1173,6 +1173,18 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels will be added on all the JindoFS pods.</p>
 </td>
 </tr>
 </table>
@@ -1527,7 +1539,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio master</p>
+<p>The component spec of Alluxio master</p>
 </td>
 </tr>
 <tr>
@@ -1540,7 +1552,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio job master</p>
+<p>The component spec ofAlluxio job master</p>
 </td>
 </tr>
 <tr>
@@ -1553,7 +1565,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio worker</p>
+<p>The component spec of Alluxio worker</p>
 </td>
 </tr>
 <tr>
@@ -1566,7 +1578,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio job Worker</p>
+<p>The component spec of Alluxio job Worker</p>
 </td>
 </tr>
 <tr>
@@ -1579,7 +1591,7 @@ AlluxioCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio API Gateway</p>
+<p>The component spec of Alluxio API Gateway</p>
 </td>
 </tr>
 <tr>
@@ -1605,7 +1617,7 @@ AlluxioFuseSpec
 </em>
 </td>
 <td>
-<p>Desired state for Alluxio Fuse</p>
+<p>The component spec of Alluxio Fuse</p>
 </td>
 </tr>
 <tr>
@@ -3351,6 +3363,19 @@ map[string]string
 <p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>labels</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels will be added on all the JindoFS Master or Worker pods.
+Any label already existed will be overriden</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="data.fluid.io/v1alpha1.JindoFuseSpec">JindoFuseSpec
@@ -3493,6 +3518,19 @@ this option only effect when global is enabled</p>
 <p>If specified, the pod&rsquo;s tolerations.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>labels</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels will be added on all the JindoFS Fuse pods.
+Any label already existed will be overriden</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="data.fluid.io/v1alpha1.JindoRuntimeSpec">JindoRuntimeSpec
@@ -3535,7 +3573,7 @@ JindoCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Jindo master</p>
+<p>The component spec of Jindo master</p>
 </td>
 </tr>
 <tr>
@@ -3548,7 +3586,7 @@ JindoCompTemplateSpec
 </em>
 </td>
 <td>
-<p>Desired state for Jindo worker</p>
+<p>The component spec of Jindo worker</p>
 </td>
 </tr>
 <tr>
@@ -3561,7 +3599,7 @@ JindoFuseSpec
 </em>
 </td>
 <td>
-<p>Desired state for Jindo Fuse</p>
+<p>The component spec of Jindo Fuse</p>
 </td>
 </tr>
 <tr>
@@ -3645,6 +3683,18 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels will be added on all the JindoFS pods.</p>
 </td>
 </tr>
 </tbody>
@@ -4639,5 +4689,5 @@ string
 <hr/>
 <p><em>
 Generated with <code>gen-crd-api-reference-docs</code>
-on git commit <code>2025b33</code>.
+on git commit <code>026c51d</code>.
 </em></p>
