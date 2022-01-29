@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
+	"github.com/fluid-cloudnative/fluid/pkg/ctrl"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base"
 	cruntime "github.com/fluid-cloudnative/fluid/pkg/runtime"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
@@ -24,6 +25,8 @@ type JindoEngine struct {
 	//initImage              string
 	runtimeInfo        base.RuntimeInfoInterface
 	MetadataSyncDoneCh chan MetadataSyncResult
+	cacheNodeNames     []string
+	*ctrl.Helper
 }
 
 func Build(id string, ctx cruntime.ReconcileRequestContext) (base.Engine, error) {
@@ -35,6 +38,7 @@ func Build(id string, ctx cruntime.ReconcileRequestContext) (base.Engine, error)
 		runtimeType:            ctx.RuntimeType,
 		gracefulShutdownLimits: 5,
 		retryShutdown:          0,
+		cacheNodeNames:         []string{},
 	}
 	// var implement base.Implement = engine
 	// engine.TemplateEngine = template
@@ -49,10 +53,13 @@ func Build(id string, ctx cruntime.ReconcileRequestContext) (base.Engine, error)
 	}
 
 	// Build and setup runtime info
-	_, err := engine.getRuntimeInfo()
+	runtimeInfo, err := engine.getRuntimeInfo()
 	if err != nil {
 		return nil, fmt.Errorf("engine %s failed to get runtime info", ctx.Name)
 	}
+
+	// Build the helper
+	engine.Helper = ctrl.BuildHelper(runtimeInfo, ctx.Client, engine.Log)
 
 	template := base.NewTemplateEngine(engine, id, ctx)
 

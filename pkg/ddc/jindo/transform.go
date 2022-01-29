@@ -2,16 +2,17 @@ package jindo
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
 	"github.com/fluid-cloudnative/fluid/pkg/common"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base/portallocator"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
 	"github.com/fluid-cloudnative/fluid/pkg/utils/docker"
 	corev1 "k8s.io/api/core/v1"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 func (e *JindoEngine) transform(runtime *datav1alpha1.JindoRuntime) (value *Jindo, err error) {
@@ -132,8 +133,15 @@ func (e *JindoEngine) transform(runtime *datav1alpha1.JindoRuntime) (value *Jind
 	if err != nil {
 		return
 	}
+	// set the placementMode
+	e.transformPlacementMode(dataset, value)
 	err = e.transformRunAsUser(runtime, value)
+	if err != nil {
+		return
+	}
 	e.transformTolerations(dataset, runtime, value)
+	e.transformResources(runtime, value)
+	e.transformLogConfig(runtime, value)
 	value.Master.DnsServer = dnsServer
 	value.Master.NameSpace = e.namespace
 	return value, err
@@ -285,6 +293,69 @@ func (e *JindoEngine) transformWorker(runtime *datav1alpha1.JindoRuntime, metaPa
 	return nil
 }
 
+func (e *JindoEngine) transformResources(runtime *datav1alpha1.JindoRuntime, value *Jindo) {
+
+	if runtime.Spec.Master.Resources.Limits != nil {
+		e.Log.Info("setting Resources limit")
+		if runtime.Spec.Master.Resources.Limits.Cpu() != nil {
+			value.Master.Resources.Limits.CPU = runtime.Spec.Master.Resources.Limits.Cpu().String()
+		}
+		if runtime.Spec.Master.Resources.Limits.Memory() != nil {
+			value.Master.Resources.Limits.Memory = runtime.Spec.Master.Resources.Limits.Memory().String()
+		}
+	}
+
+	if runtime.Spec.Master.Resources.Requests != nil {
+		e.Log.Info("setting Resources request")
+		if runtime.Spec.Master.Resources.Requests.Cpu() != nil {
+			value.Master.Resources.Requests.CPU = runtime.Spec.Master.Resources.Requests.Cpu().String()
+		}
+		if runtime.Spec.Master.Resources.Requests.Memory() != nil {
+			value.Master.Resources.Requests.Memory = runtime.Spec.Master.Resources.Requests.Memory().String()
+		}
+	}
+
+	if runtime.Spec.Fuse.Resources.Limits != nil {
+		e.Log.Info("setting Resources limit")
+		if runtime.Spec.Fuse.Resources.Limits.Cpu() != nil {
+			value.Fuse.Resources.Limits.CPU = runtime.Spec.Fuse.Resources.Limits.Cpu().String()
+		}
+		if runtime.Spec.Fuse.Resources.Limits.Memory() != nil {
+			value.Fuse.Resources.Limits.Memory = runtime.Spec.Fuse.Resources.Limits.Memory().String()
+		}
+	}
+
+	if runtime.Spec.Fuse.Resources.Requests != nil {
+		e.Log.Info("setting Resources request")
+		if runtime.Spec.Fuse.Resources.Requests.Cpu() != nil {
+			value.Fuse.Resources.Requests.CPU = runtime.Spec.Fuse.Resources.Requests.Cpu().String()
+		}
+		if runtime.Spec.Fuse.Resources.Requests.Memory() != nil {
+			value.Fuse.Resources.Requests.Memory = runtime.Spec.Fuse.Resources.Requests.Memory().String()
+		}
+	}
+
+	if runtime.Spec.Worker.Resources.Limits != nil {
+		e.Log.Info("setting Resources limit")
+		if runtime.Spec.Worker.Resources.Limits.Cpu() != nil {
+			value.Worker.Resources.Limits.CPU = runtime.Spec.Worker.Resources.Limits.Cpu().String()
+		}
+		if runtime.Spec.Worker.Resources.Limits.Memory() != nil {
+			value.Worker.Resources.Limits.Memory = runtime.Spec.Worker.Resources.Limits.Memory().String()
+		}
+	}
+
+	if runtime.Spec.Worker.Resources.Requests != nil {
+		e.Log.Info("setting Resources request")
+		if runtime.Spec.Worker.Resources.Requests.Cpu() != nil {
+			value.Worker.Resources.Requests.CPU = runtime.Spec.Worker.Resources.Requests.Cpu().String()
+		}
+		if runtime.Spec.Worker.Resources.Requests.Memory() != nil {
+			value.Worker.Resources.Requests.Memory = runtime.Spec.Worker.Resources.Requests.Memory().String()
+		}
+	}
+}
+
 func (e *JindoEngine) transformFuse(runtime *datav1alpha1.JindoRuntime, value *Jindo) (err error) {
 	// default enable data-cache and disable meta-cache
 	properties := map[string]string{
@@ -294,9 +365,10 @@ func (e *JindoEngine) transformFuse(runtime *datav1alpha1.JindoRuntime, value *J
 		"client.oss.upload.max.parallelism":         "16",
 		"client.oss.timeout.millisecond":            "30000",
 		"client.oss.connection.timeout.millisecond": "3000",
+		"client.storage.connect.enable":             "true",
 		"jfs.cache.meta-cache.enable":               "0",
 		"jfs.cache.data-cache.enable":               "1",
-		"jfs.cache.data-cache.slicecache.enable":    "0",
+		"jfs.cache.data-cache.slicecache.enable":    "1",
 	}
 
 	// "client.storage.rpc.port": "6101",
@@ -323,6 +395,14 @@ func (e *JindoEngine) transformFuse(runtime *datav1alpha1.JindoRuntime, value *J
 	return nil
 }
 
+func (e *JindoEngine) transformLogConfig(runtime *datav1alpha1.JindoRuntime, value *Jindo) {
+	if len(runtime.Spec.LogConfig) > 0 {
+		value.LogConfig = runtime.Spec.LogConfig
+	} else {
+		value.LogConfig = map[string]string{}
+	}
+}
+
 func (e *JindoEngine) transformFuseNodeSelector(runtime *datav1alpha1.JindoRuntime, value *Jindo) (err error) {
 	if len(runtime.Spec.Fuse.NodeSelector) > 0 {
 		value.Fuse.NodeSelector = runtime.Spec.Fuse.NodeSelector
@@ -340,10 +420,11 @@ func (e *JindoEngine) transformNodeSelector(runtime *datav1alpha1.JindoRuntime) 
 	properties := map[string]string{}
 	if runtime.Spec.Worker.NodeSelector != nil {
 		properties = runtime.Spec.Worker.NodeSelector
-	} else {
-		labelName := e.getCommonLabelname()
-		properties[labelName] = "true"
 	}
+	// } else {
+	// 	labelName := e.getCommonLabelname()
+	// 	properties[labelName] = "true"
+	// }
 	return properties
 }
 
@@ -580,4 +661,13 @@ func (e *JindoEngine) transformLabels(runtime *datav1alpha1.JindoRuntime, value 
 	value.Fuse.Labels = runtime.Spec.Fuse.Labels
 
 	return nil
+}
+
+func (e *JindoEngine) transformPlacementMode(dataset *datav1alpha1.Dataset, value *Jindo) {
+
+	value.PlacementMode = string(dataset.Spec.PlacementMode)
+	if len(value.PlacementMode) == 0 {
+		value.PlacementMode = string(datav1alpha1.ExclusiveMode)
+	}
+
 }

@@ -26,6 +26,8 @@ type Jindo struct {
 	Tolerations     []v1.Toleration      `yaml:"tolerations,omitempty"`
 	InitPortCheck   common.InitPortCheck `yaml:"initPortCheck,omitempty"`
 	Labels          map[string]string    `yaml:"labels,omitempty"`
+	LogConfig       map[string]string    `yaml:"logConfig,omitempty"`
+	PlacementMode   string               `yaml:"placement,omitempty"`
 }
 
 type HadoopConfig struct {
@@ -50,12 +52,13 @@ type Master struct {
 }
 
 type Worker struct {
-	Resources        Resources         `yaml:"resources"`
+	Resources        Resources         `yaml:"resources,omitempty"`
 	NodeSelector     map[string]string `yaml:"nodeSelector,omitempty"`
 	WorkerProperties map[string]string `yaml:"properties"`
 	Port             Ports             `yaml:"ports,omitempty"`
 	Tolerations      []v1.Toleration   `yaml:"tolerations,omitempty"`
-	Labels           map[string]string `yaml:"labels,omitempty"`
+	// Affinity         v1.Affinity       `yaml:"affinity,omitempty"`
+	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
 type Ports struct {
@@ -73,6 +76,7 @@ type Fuse struct {
 	Tolerations    []v1.Toleration   `yaml:"tolerations,omitempty"`
 	Labels         map[string]string `yaml:"labels,omitempty"`
 	CriticalPod    bool              `yaml:"criticalPod,omitempty"`
+	Resources      Resources         `yaml:"resources,omitempty"`
 }
 
 type Mounts struct {

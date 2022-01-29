@@ -17,7 +17,9 @@ package base_test
 
 import (
 	"context"
+
 	datav1alpha1 "github.com/fluid-cloudnative/fluid/api/v1alpha1"
+	"github.com/fluid-cloudnative/fluid/pkg/ddc/alluxio"
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/base"
 	enginemock "github.com/fluid-cloudnative/fluid/pkg/ddc/base/mock"
 	"github.com/fluid-cloudnative/fluid/pkg/runtime"
@@ -28,18 +30,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryRuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"testing"
 )
 
 var _ = Describe("TemplateEngine", func() {
 	mockDatasetName := "fluid-data-set"
-	mockDatasetNamespace := "default"
+	mockDataLoadName := "fluid-data-load"
+	mockNamespace := "default"
 
 	fakeDataset := &datav1alpha1.Dataset{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mockDatasetName,
-			Namespace: mockDatasetNamespace,
+			Namespace: mockNamespace,
+		},
+	}
+	fakeDataLoad := datav1alpha1.DataLoad{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mockDataLoadName,
+			Namespace: mockNamespace,
 		},
 	}
 	s := apimachineryRuntime.NewScheme()
@@ -49,7 +60,7 @@ var _ = Describe("TemplateEngine", func() {
 	var fakeCtx = runtime.ReconcileRequestContext{
 		Context: context.Background(),
 		NamespacedName: types.NamespacedName{
-			Namespace: mockDatasetNamespace,
+			Namespace: mockNamespace,
 			Name:      mockDatasetName,
 		},
 		Client:        fakeClient,
@@ -58,71 +69,110 @@ var _ = Describe("TemplateEngine", func() {
 		FinalizerName: "test-finalizer-name",
 		Runtime:       nil,
 	}
-	var t = base.TemplateEngine{
-		Id:      "test-id",
-		Log:     fakeCtx.Log,
-		Context: fakeCtx,
-		Client:  fakeClient,
-	}
-	var impl *enginemock.MockImplement
+	var t *base.TemplateEngine
+
+	var (
+		impl *enginemock.MockImplement
+		ctrl *gomock.Controller
+	)
 
 	BeforeEach(func() {
-		ctrl := gomock.NewController(GinkgoT())
+		ctrl = gomock.NewController(GinkgoT())
 		impl = enginemock.NewMockImplement(ctrl)
-		t.Implement = impl
+		t = base.NewTemplateEngine(impl, "default-test", fakeCtx)
+	})
+
+	// Check if all expectations have been met after each It
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	Describe("Setup", func() {
 		Context("When everything is set up", func() {
-			It("Should return immediately after checking setup", func() {
-				impl.EXPECT().IsSetupDone().Return(true, nil).Times(1)
-			})
 			It("Should check all if checking setup failed", func() {
-				impl.EXPECT().IsSetupDone().Return(false, nil).Times(1)
-				impl.EXPECT().ShouldSetupMaster().Return(false, nil).Times(1)
-				impl.EXPECT().CheckMasterReady().Return(true, nil).Times(1)
-				impl.EXPECT().ShouldCheckUFS().Return(false, nil).Times(1)
-				impl.EXPECT().ShouldSetupWorkers().Return(false, nil).Times(1)
-				impl.EXPECT().CheckWorkersReady().Return(true, nil).Times(1)
-				impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1)
-				impl.EXPECT().UpdateDatasetStatus(gomock.Any()).Return(nil).Times(1)
-				impl.EXPECT().BindToDataset().Return(nil).Times(1)
+				gomock.InOrder(
+					impl.EXPECT().ShouldSetupMaster().Return(false, nil).Times(1),
+					impl.EXPECT().CheckMasterReady().Return(true, nil).Times(1),
+					impl.EXPECT().ShouldCheckUFS().Return(false, nil).Times(1),
+					impl.EXPECT().ShouldSetupWorkers().Return(false, nil).Times(1),
+					impl.EXPECT().CheckWorkersReady().Return(true, nil).Times(1),
+					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1),
+					impl.EXPECT().BindToDataset().Return(nil).Times(1),
+				)
+
 				Expect(t.Setup(fakeCtx)).Should(Equal(true))
 			})
 		})
 
 		Context("When nothing is set up", func() {
-			Context("When everything goes fine", func() {
-				It("Should set all up successfully", func() {
-					impl.EXPECT().IsSetupDone().Return(false, nil).Times(1)
-					impl.EXPECT().ShouldSetupMaster().Return(true, nil).Times(1)
-					impl.EXPECT().SetupMaster().Return(nil).Times(1)
-					impl.EXPECT().CheckMasterReady().Return(true, nil).Times(1)
-					impl.EXPECT().ShouldCheckUFS().Return(true, nil).Times(1)
-					impl.EXPECT().PrepareUFS().Return(nil).Times(1)
-					impl.EXPECT().ShouldSetupWorkers().Return(true, nil).Times(1)
-					impl.EXPECT().SetupWorkers().Return(nil).Times(1)
-					impl.EXPECT().CheckWorkersReady().Return(true, nil).Times(1)
-					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1)
-					impl.EXPECT().UpdateDatasetStatus(gomock.Any()).Return(nil).Times(1)
-					impl.EXPECT().BindToDataset().Return(nil).Times(1)
-					Expect(t.Setup(fakeCtx)).Should(Equal(true))
-				})
+			It("Should set all up successfully", func() {
+				gomock.InOrder(
+					impl.EXPECT().ShouldSetupMaster().Return(true, nil).Times(1),
+					impl.EXPECT().SetupMaster().Return(nil).Times(1),
+					impl.EXPECT().CheckMasterReady().Return(true, nil).Times(1),
+					impl.EXPECT().ShouldCheckUFS().Return(true, nil).Times(1),
+					impl.EXPECT().PrepareUFS().Return(nil).Times(1),
+					impl.EXPECT().ShouldSetupWorkers().Return(true, nil).Times(1),
+					impl.EXPECT().SetupWorkers().Return(nil).Times(1),
+					impl.EXPECT().CheckWorkersReady().Return(true, nil).Times(1),
+					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1),
+					impl.EXPECT().BindToDataset().Return(nil).Times(1),
+				)
+
+				Expect(t.Setup(fakeCtx)).Should(Equal(true))
 			})
 		})
 	})
 
 	Describe("Sync", func() {
-		It("Should sync successfully", func() {
-			impl.EXPECT().SyncMetadata().Return(nil).Times(1)
-			impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1)
-			impl.EXPECT().UpdateCacheOfDataset().Return(nil).Times(1)
-			impl.EXPECT().CheckRuntimeHealthy().Return(nil).Times(1)
-			impl.EXPECT().SyncReplicas(gomock.Eq(fakeCtx)).Return(nil).Times(1)
-			impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1)
-			impl.EXPECT().ShouldUpdateUFS().Return(&utils.UFSToUpdate{}).Times(1)
-			impl.EXPECT().UpdateOnUFSChange(&utils.UFSToUpdate{}).Return(true, nil).Times(1)
-			Expect(t.Sync(fakeCtx)).To(BeNil())
+		Context("When all mount points are synced", func() {
+			It("Should sync successfully", func() {
+				gomock.InOrder(
+					impl.EXPECT().SyncMetadata().Return(nil).Times(1),
+					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1),
+					impl.EXPECT().UpdateCacheOfDataset().Return(nil).Times(1),
+					impl.EXPECT().CheckRuntimeHealthy().Return(nil).Times(1),
+					impl.EXPECT().SyncReplicas(gomock.Eq(fakeCtx)).Return(nil).Times(1),
+					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1),
+					impl.EXPECT().ShouldUpdateUFS().Return(&utils.UFSToUpdate{}).Times(1),
+					impl.EXPECT().SyncScheduleInfoToCacheNodes().Return(nil).Times(1),
+				)
+
+				Expect(t.Sync(fakeCtx)).To(BeNil())
+			})
+		})
+
+		Context("When some mount points need to be synced", func() {
+			It("All mount points should be synced successfully", func() {
+				datasetWithNewMountPoints := &datav1alpha1.Dataset{
+					Spec: datav1alpha1.DatasetSpec{
+						Mounts: []datav1alpha1.Mount{
+							{
+								// newly added mount points
+								Name: "spark",
+							},
+						},
+					},
+					Status: datav1alpha1.DatasetStatus{
+						Mounts: []datav1alpha1.Mount{},
+					},
+				}
+				ufsToUpdate := utils.NewUFSToUpdate(datasetWithNewMountPoints)
+				ufsToUpdate.AnalyzePathsDelta()
+
+				gomock.InOrder(
+					impl.EXPECT().SyncMetadata().Return(nil).Times(1),
+					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1),
+					impl.EXPECT().UpdateCacheOfDataset().Return(nil).Times(1),
+					impl.EXPECT().CheckRuntimeHealthy().Return(nil).Times(1),
+					impl.EXPECT().SyncReplicas(gomock.Eq(fakeCtx)).Return(nil).Times(1),
+					impl.EXPECT().CheckAndUpdateRuntimeStatus().Return(true, nil).Times(1),
+					impl.EXPECT().ShouldUpdateUFS().Return(ufsToUpdate).Times(1),
+					impl.EXPECT().UpdateOnUFSChange(ufsToUpdate).Times(1),
+					impl.EXPECT().SyncScheduleInfoToCacheNodes().Return(nil).Times(1),
+				)
+				Expect(t.Sync(fakeCtx)).Should(BeNil())
+			})
 		})
 	})
 
@@ -152,4 +202,79 @@ var _ = Describe("TemplateEngine", func() {
 			Expect(t.Shutdown()).To(BeNil())
 		})
 	})
+
+	Describe("LoadData", func() {
+		It("Should Load data successfully", func() {
+			impl.EXPECT().CreateDataLoadJob(fakeCtx, fakeDataLoad).Return(nil).Times(1)
+			Expect(t.LoadData(fakeCtx, fakeDataLoad)).To(BeNil())
+		})
+	})
+
+	Describe("CheckRuntimeReady", func() {
+		It("Should check runtime is ready", func() {
+			impl.EXPECT().CheckRuntimeReady().Return(true).Times(1)
+			Expect(t.CheckRuntimeReady()).Should(Equal(true))
+		})
+	})
+
+	Describe("CheckExistenceOfPath", func() {
+		It("Should check path exists", func() {
+			impl.EXPECT().CheckExistenceOfPath(fakeDataLoad).Return(false, nil)
+			Expect(t.CheckExistenceOfPath(fakeDataLoad)).Should(Equal(false))
+		})
+	})
 })
+
+var (
+	testScheme *apimachineryRuntime.Scheme
+)
+
+func TestNewTemplateEngine(t *testing.T) {
+	testObjs := []apimachineryRuntime.Object{}
+	client := fake.NewFakeClientWithScheme(testScheme, testObjs...)
+	engine := &alluxio.AlluxioEngine{
+		Client: client,
+	}
+
+	id := "test id"
+
+	ctx := runtime.ReconcileRequestContext{
+		NamespacedName: types.NamespacedName{
+			Name:      "hbase",
+			Namespace: "fluid",
+		},
+		Client:      client,
+		Log:         log.NullLogger{},
+		RuntimeType: "alluxio",
+	}
+
+	templateEngine := base.NewTemplateEngine(engine, id, ctx)
+	if !reflect.DeepEqual(templateEngine.Implement, engine) && templateEngine.Id != id && !reflect.DeepEqual(templateEngine.Context, ctx) {
+		t.Errorf("expected implement %v, get %v; expected id %s, get %s, expected context %v, get %v", engine, templateEngine.Implement, id, templateEngine.Id, ctx, templateEngine.Context)
+	}
+}
+
+func TestID(t *testing.T) {
+	testObjs := []apimachineryRuntime.Object{}
+	client := fake.NewFakeClientWithScheme(testScheme, testObjs...)
+	engine := &alluxio.AlluxioEngine{
+		Client: client,
+	}
+
+	id := "test id"
+
+	ctx := runtime.ReconcileRequestContext{
+		NamespacedName: types.NamespacedName{
+			Name:      "hbase",
+			Namespace: "fluid",
+		},
+		Client:      client,
+		Log:         log.NullLogger{},
+		RuntimeType: "alluxio",
+	}
+
+	templateEngine := base.NewTemplateEngine(engine, id, ctx)
+	if templateEngine.Id != templateEngine.ID() {
+		t.Errorf("expected %s, get %s", templateEngine.Id, templateEngine.ID())
+	}
+}

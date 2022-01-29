@@ -2,13 +2,17 @@ package jindo
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/fluid-cloudnative/fluid/pkg/ddc/jindo/operations"
 	"github.com/fluid-cloudnative/fluid/pkg/utils"
-	"strings"
+	"github.com/fluid-cloudnative/fluid/pkg/utils/kubeclient"
 )
 
 // queryCacheStatus checks the cache status
 func (e *JindoEngine) queryCacheStatus() (states cacheStates, err error) {
+	defer utils.TimeTrack(time.Now(), "JindoEngine.queryCacheStatus", "name", e.name, "namespace", e.namespace)
 	summary, err := e.GetReportSummary()
 	if err != nil {
 		e.Log.Error(err, "Failed to get Jindo summary when query cache status")
@@ -59,8 +63,8 @@ func (e *JindoEngine) queryCacheStatus() (states cacheStates, err error) {
 // clean cache
 func (e *JindoEngine) invokeCleanCache() (err error) {
 	// 1. Check if master is ready, if not, just return
-	masterName := e.getMasterStatefulsetName()
-	master, err := e.getMasterStatefulset(masterName, e.namespace)
+	masterName := e.getMasterName()
+	master, err := kubeclient.GetStatefulSet(e.Client, masterName, e.namespace)
 	if err != nil {
 		if utils.IgnoreNotFound(err) == nil {
 			e.Log.Info("Failed to get master", "err", err.Error())

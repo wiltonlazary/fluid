@@ -41,6 +41,8 @@ master:
 worker:
   labels: {}
   nodeSelector: {}
+  replicaCount: 0
+  podManagementPolicy: Parallel
   properties:
     storage.rpc.port: 6101
 

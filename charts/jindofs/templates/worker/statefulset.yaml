@@ -4,7 +4,7 @@
 {{- $notEnableDnsConfig := (eq .Values.master.dnsServer "1.1.1.1") }}
 
 apiVersion: apps/v1
-kind: DaemonSet
+kind: StatefulSet
 metadata:
   name: {{ template "jindofs.fullname" . }}-worker
   labels:
@@ -13,12 +13,17 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
     role: jindofs-worker
+    fluid.io/dataset: {{ .Release.Namespace }}-{{ .Release.Name }}
+    fluid.io/dataset-placement: {{ .Values.placement }}
 spec:
   selector:
     matchLabels:
       app: {{ template "jindofs.name" . }}
       release: {{ .Release.Name }}
       role: jindofs-worker
+  serviceName: {{ template "jindofs.fullname" . }}-worker
+  replicas: {{ .Values.worker.replicaCount }}
+  podManagementPolicy: {{ .Values.worker.podManagementPolicy }}
   template:
     metadata:
       labels:
@@ -27,6 +32,8 @@ spec:
         release: {{ .Release.Name }}
         heritage: {{ .Release.Service }}
         role: jindofs-worker
+        fluid.io/dataset: {{ .Release.Namespace }}-{{ .Release.Name }}
+        fluid.io/dataset-placement: {{ .Values.placement }}
 {{- if .Values.labels }}
 {{ toYaml .Values.labels | trim | indent 8 }}
 {{- end }}
@@ -54,6 +61,25 @@ spec:
         - name: jindofs-worker
           image: {{ .Values.image }}:{{ .Values.imageTag }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
+          {{- if .Values.worker.resources }}
+          resources:
+            limits:
+            {{- if .Values.worker.resources }}
+            {{- if .Values.worker.resources.limits }}
+            {{- if .Values.worker.resources.limits.cpu }}
+              cpu: {{ .Values.worker.resources.limits.cpu }}
+              memory: {{ .Values.worker.resources.limits.memory }}
+            {{- end }}
+            {{- end }}
+            requests:
+            {{- if .Values.worker.resources.requests }}
+            {{- if .Values.worker.resources.requests.cpu }}
+              cpu: {{ .Values.worker.resources.requests.cpu }}
+              memory: {{ .Values.worker.resources.requests.memory }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
           command: ["/entrypoint.sh"]
           args: ["worker"]
           env:
